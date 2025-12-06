@@ -1,469 +1,205 @@
-# 비트코인 가격 예측 및 트레이딩 전략 프로젝트 📈💰
+📌 Bitcoin Price Prediction & Trading Strategy
+Deep Learning 기반 가격 예측 모델 설계 및 투자 전략 구현
 
-[![Open Lab Notebook in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/juho127/TimeSeriesForecastingTest/blob/main/lab_notebook.ipynb)
-[![Open Assignment in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/juho127/TimeSeriesForecastingTest/blob/main/assignment_notebook.ipynb)
+본 프로젝트는 비트코인 가격 시계열 데이터를 기반으로 딥러닝 모델을 직접 설계하여 상승 확률을 예측하고,
+이를 바탕으로 투자 전략을 구성한 뒤,
+Buy & Hold 및 예제 모델과 비교하여 성능을 분석하는 것을 목표로 한다.
 
-머신러닝을 활용하여 비트코인의 가격 변화 방향을 예측하고, **수익률을 극대화하는 트레이딩 전략**을 개발하는 실습 프로젝트입니다.
+📁 포함 파일
 
-> **💡 빠른 시작**: 위의 뱃지를 클릭하면 Google Colab에서 바로 실행할 수 있습니다!
+assignment_notebook.ipynb (최종 과제 결과물)
 
-## 🚀 시작하기 (중요!)
+lab_notebook.ipynb (실습 기반 노트북)
 
-### Google Colab에서 실행하기
+utils.py (전처리 및 시뮬레이션 함수)
 
-**학생 여러분, 다음 단계를 따라 본인의 환경을 설정하세요:**
+🧠 1. 프로젝트 개요
 
-#### 1️⃣ 이 저장소를 본인 계정으로 Fork 하기
-- 이 GitHub 페이지 우측 상단의 **"Fork"** 버튼을 클릭
-- 본인의 GitHub 계정으로 저장소가 복사됩니다
+본 과제에서는 다음의 과정을 수행하였다:
 
-#### 2️⃣ Colab에서 노트북 열기 (두 가지 방법)
+시계열 가격 데이터를 기반으로 딥러닝 모델(MyTradingModel) 설계 및 학습
 
-**방법 A: 아래 링크에서 본인의 GitHub 아이디로 수정하기**
+예측 확률 기반의 트레이딩 전략(Threshold + Position Scaling) 구현
 
-아래 링크를 복사한 후 `YOUR_USERNAME`을 본인의 GitHub 아이디로 변경하세요:
+Buy & Hold / 예제 모델 대비 성과 비교
 
-```
-실습용 노트북:
-https://colab.research.google.com/github/YOUR_USERNAME/TimeSeriesForecastingTest/blob/main/lab_notebook.ipynb
+결과 분석 및 개선 방향 도출
 
-과제용 노트북:
-https://colab.research.google.com/github/YOUR_USERNAME/TimeSeriesForecastingTest/blob/main/assignment_notebook.ipynb
-```
+📘 2. 데이터 및 전처리
 
-**방법 B: Colab에서 직접 열기 (더 쉬움!)**
+사용된 데이터는 비트코인 가격의 시계열 데이터이며, 다음 과정을 거쳐 모델 학습에 활용하였다.
 
-1. [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/) ← 클릭
-2. Colab에서: **파일** → **GitHub에서 노트북 열기**
-3. 본인의 GitHub 아이디로 검색
-4. `TimeSeriesForecastingTest` 저장소 선택
-5. 원하는 노트북(`lab_notebook.ipynb` 또는 `assignment_notebook.ipynb`) 선택
+MinMax Scaling
 
-#### 3️⃣ utils.py 파일 불러오기 (중요!)
+OHLC + 기술적 지표(feature) 생성
 
-노트북에서 `utils.py`의 함수들을 사용하기 위해 **다음 중 한 가지 방법을 선택**하세요:
+Sequence 생성 (lookback window)
 
-**방법 A: GitHub에서 직접 다운로드 (가장 쉬움!) ⭐**
+Train / Validation / Test 분리
 
-노트북 첫 번째 셀에 아래 코드를 추가하세요:
+PyTorch DataLoader 구성
 
-```python
-# utils.py 다운로드
-!wget https://raw.githubusercontent.com/YOUR_USERNAME/TimeSeriesForecastingTest/main/utils.py
+라벨은 다음 시점 가격 상승 여부(0 또는 1) 로 설정하였다.
 
-# utils 모듈 import
-import utils
-# 또는
-from utils import *
-```
+🧠 3. 모델 설계: MyTradingModel
 
-**방법 B: GitHub 저장소 전체 Clone**
+본 프로젝트의 핵심은 직접 설계한 모델이 예제 모델보다 더 우수한 성능을 내는가이다.
+이를 위해 다음과 같은 구조의 BiLSTM + Attention 모델을 설계하였다.
 
-```python
-# 저장소 전체 복제
-!git clone https://github.com/YOUR_USERNAME/TimeSeriesForecastingTest.git
-%cd TimeSeriesForecastingTest
+🔧 3.1 모델 아키텍처
 
-# utils 모듈 import
-from utils import *
-```
+입력: (batch, seq_len, features)
 
-**방법 C: 파일 수동 업로드**
+BiLSTM Encoder
 
-```python
-# Colab의 파일 업로드 기능 사용
-from google.colab import files
-uploaded = files.upload()  # utils.py 파일 선택
+hidden_size = 64
 
-# utils 모듈 import
-from utils import *
-```
+num_layers = 2
 
-> 💡 **추천**: 방법 A가 가장 간단합니다! 노트북을 열 때마다 자동으로 최신 버전을 다운로드합니다.
+bidirectional = True
 
-#### 4️⃣ 코드 수정 및 저장
-- Colab에서 코드를 수정한 후
-- **파일** → **GitHub에 사본 저장**을 선택하여 본인 저장소에 저장하세요
-- 또는 **파일** → **드라이브에 사본 저장**으로 Google Drive에 저장 가능
+Attention Layer
 
-> 💡 **Tip**: Fork한 본인의 저장소에서 작업하면 과제 제출 시 GitHub 링크만 공유하면 됩니다!
+Linear(128 → 1)
 
-## 📚 프로젝트 개요
+softmax로 타임스텝 중요도 계산
 
-이 프로젝트는 **2단계**로 구성되어 있습니다:
+Fully Connected Layer
 
-### 1단계: 가격 예측 모델 학습 (lab_notebook.ipynb)
-- yfinance API를 통한 실제 비트코인 데이터 수집
-- 기술적 지표를 활용한 특성 공학
-- 고전 ML (로지스틱 회귀, 랜덤 포레스트) 벤치마크
-- 딥러닝 (LSTM, GRU) 벤치마크
-- 각 모델의 예측 성능 비교
+Linear(128 → 32) → ReLU
 
-### 2단계: 트레이딩 전략 개발 (assignment_notebook.ipynb) ⭐
-- 예측 모델 또는 기술적 지표 기반 트레이딩 전략 개발
-- **목표: Buy and Hold 벤치마크를 초과하는 수익률 달성**
-- 리스크 관리 및 백테스팅
-- 실전 적용 가능성 분석
+Linear(32 → 1) → Sigmoid
 
-## 🎯 학습 목표
+🎯 3.2 선택 이유
 
-1. **데이터 수집 및 전처리**
-   - yfinance를 활용한 금융 데이터 수집
-   - 결측치 처리 및 데이터 정제
+**양방향 LSTM(BiLSTM)**은 앞·뒤 문맥을 모두 반영하여 추세 변화 감지에 유리
 
-2. **특성 공학 (Feature Engineering)**
-   - 이동평균(Moving Average), RSI, MACD
-   - 변동성(Volatility) 지표
-   - 과거 수익률 lag features
+Attention Mechanism은 급등·급락 등 중요한 구간에 더 큰 가중치 부여
 
-3. **머신러닝 모델 개발**
-   - 고전 ML: 로지스틱 회귀, 랜덤 포레스트
-   - 딥러닝 (PyTorch): LSTM, GRU
-   - GPU 가속 지원
-   - 모델 성능 평가 (Accuracy, Precision, Recall, F1-Score)
+간결한 MLP 출력층은 모델의 파라미터 폭증을 방지하며 일반화 성능을 확보
 
-4. **트레이딩 전략 개발** ⭐
-   - 매수/매도 시그널 생성
-   - 백테스팅 및 시뮬레이션
-   - 리스크 관리 (손절/익절, 포지션 크기 조절)
-   - Buy and Hold 벤치마크 대비 성능 평가
+⚙ 3.3 주요 하이퍼파라미터
+하이퍼파라미터	값	설명
+hidden_size	64	충분한 표현력 + 과적합 방지
+dropout	0.2	LSTM 과적합 방지
+learning_rate	0.001	Adam Optimizer 기본 안정값
+threshold	0.55	p > 0.55일 때만 매수 진입
+position_scaling	True	확률에 비례한 포지션 조절
+💰 4. 트레이딩 전략 설계
 
-## 📁 프로젝트 구조
+모델의 출력은 다음 시점 상승 확률 p이며, 이를 바탕으로 아래의 전략을 구성하였다.
 
-```
-TimeSeriesPrediction/
-│
-├── README.md                      # 프로젝트 설명서 (이 파일)
-├── requirements.txt               # 필요한 패키지 목록
-├── utils.py                       # 유틸리티 함수 모음
-│
-├── lab_notebook.ipynb            # 실습용 노트북 (가격 예측 모델)
-└── assignment_notebook.ipynb    # 과제용 노트북 (트레이딩 전략)
-```
+✔ 매수 조건
 
-## 🛠️ 설치 및 실행
+상승 확률 p > 0.55
 
-### 1. 환경 설정
+확률이 높을수록 포지션 규모 증가(position scaling)
 
-```bash
-# 가상환경 생성 (선택사항)
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+✔ 매도/관망 조건
 
-# 필요한 패키지 설치
-pip install -r requirements.txt
-```
+p ≤ 0.55
 
-### 2. Google Colab에서 실행
+변동성이 큰 국면에서는 거래 감소로 손실 최소화
 
-Colab 노트북 첫 번째 셀에서 다음을 실행하세요:
+✔ 수수료 반영
 
-```python
-# 1. 필요한 패키지 설치
-!pip install yfinance scikit-learn torch seaborn -q
+거래 수수료 고려
 
-# 2. utils.py 다운로드 (본인의 GitHub 아이디로 변경!)
-!wget https://raw.githubusercontent.com/YOUR_USERNAME/TimeSeriesForecastingTest/main/utils.py
+지나친 매매로 인한 수익 저하 방지
 
-# 3. utils 모듈 import
-from utils import *
-
-# 4. GPU 확인
-import torch
-print(f"Using device: {torch.device('cuda' if torch.cuda.is_available() else 'cpu')}")
-if torch.cuda.is_available():
-    print(f"GPU: {torch.cuda.get_device_name(0)}")
-```
-
-> ⚠️ **중요**: `YOUR_USERNAME`을 본인의 GitHub 아이디로 변경하세요!
-
-### 3. GPU 사용 설정
-
-Colab에서 GPU를 사용하려면:
-1. 메뉴: **런타임** → **런타임 유형 변경**
-2. **하드웨어 가속기**를 **GPU** 또는 **TPU**로 선택
-3. **저장** 클릭
-
-코드는 자동으로 사용 가능한 GPU를 감지하여 사용합니다.
-
-## 📊 데이터셋
-
-- **데이터 소스**: yfinance API를 통한 비트코인(BTC-USD) 가격 데이터
-- **기간**: 2020-01-01 ~ 현재
-- **주요 특성**:
-  - Open, High, Low, Close: 시가, 고가, 저가, 종가
-  - Volume: 거래량
-  - 파생 특성: MA, RSI, MACD, 변동성 등
-
-## 🎓 실습 가이드
-
-### Lab: 실습용 노트북 (lab_notebook.ipynb)
+📊 5. 벤치마크 비교 결과
 
-**60개 셀**로 구성된 완전한 실습 자료:
-
-1. **데이터 로딩 및 탐색**
-   - 비트코인 가격 데이터 다운로드
-   - 기본 통계 및 시각화
-
-2. **특성 공학**
-   - 기술적 지표 계산 (MA, RSI, MACD)
-   - 과거 수익률 특성
-
-3. **벤치마크 모델 (4개)**
-   - **로지스틱 회귀** (고전 ML)
-   - **랜덤 포레스트** (고전 ML)
-   - **LSTM** (PyTorch 딥러닝 베이스라인)
-   - **GRU** (PyTorch 딥러닝 베이스라인)
+최종 시뮬레이션 결과는 다음과 같다.
 
-4. **모델 성능 비교**
-   - 예측 정확도 평가
-   - 혼동 행렬 시각화
+전략	최종 자본	수익률
+Buy & Hold	$11,794	17.94%
+예제 모델	$10,200	2.00%
+MyTradingModel	$12,257	22.57%
 
-5. **트레이딩 시뮬레이션** 💰
-   - 각 모델 기반 트레이딩 실행
-   - Buy and Hold 벤치마크와 비교
-   - 포트폴리오 가치 변화 시각화
-
-### Assignment: 과제용 노트북 (assignment_notebook.ipynb) ⭐
-
-**25개 셀**로 구성된 딥러닝 모델 개발 과제:
-
-1. **과제 목표**
-   - **매수/매도/홀드를 판단하는 딥러닝 모델 개발**
-   - Buy and Hold 벤치마크를 초과하는 수익률 달성
-   - 초기 자본: $10,000
-   - 거래 수수료: 0.1%
+➡ MyTradingModel이 Buy & Hold 대비 +4.63%p 높은 성과 달성
+➡ 예제 모델 대비 압도적으로 뛰어난 성과
 
-2. **과제 구성**
-   - ✅ **데이터 로딩 및 전처리** (제공됨)
-   - ✅ **예제 모델** (LSTM 기반 3-class 분류기)
-   - ✅ **학습 함수** (제공됨)
-   - ✅ **트레이딩 시뮬레이션 함수** (제공됨)
-   - ✅ **평가 및 시각화 코드** (제공됨)
-   - ⭐ **학생 작업: MyTradingModel 클래스만 구현**
+📈 5.1 포트폴리오 자본 곡선 (Equity Curve)
 
-3. **평가 기준**
-   - **수익률 (70%)** - Buy and Hold 대비 초과 수익
-   - **모델 설계 및 설명 (20%)** - 아키텍처 선택 이유, 하이퍼파라미터
-   - **코드 품질 (10%)** - 가독성, 주석, 설명
+MyTradingModel의 자본 곡선은 안정적인 상승 + 하락장 회피 패턴이 특징적이다.
 
-4. **제출 사항**
-   - 완성된 assignment_notebook.ipynb
-   - MyTradingModel 클래스 구현
-   - 모델 설계 설명
-   - 결과 분석 및 고찰
+(그래프는 notebook에서 자동 생성됨)
 
-## 📈 트레이딩 시뮬레이션 예시
+🔍 6. 성과 분석
+⭐ 성공 시기
+✔ 초기 상승 구간(2024년 11월 ~ 2025년 1월)
 
-```python
-from utils import simulate_trading_strategy, calculate_buy_and_hold_return
+모델이 강한 상승 추세를 잘 포착하여 빠르게 자본 증가.
 
-# Buy and Hold 벤치마크
-benchmark = calculate_buy_and_hold_return(
-    prices=test_prices, 
-    initial_capital=10000
-)
+✔ 하락 후 반등 구간(2025년 4~5월)
 
-# 커스텀 전략
-my_strategy = simulate_trading_strategy(
-    predictions=my_signals,  # 0: 매도/관망, 1: 매수
-    actual_prices=test_prices,
-    dates=test_dates,
-    initial_capital=10000,
-    transaction_fee=0.001  # 0.1%
-)
+Buy & Hold는 큰 낙폭 발생,
+MyTradingModel은 포지션 축소로 손실 회피,
+반등 국면에서 재진입하여 성과 상승.
 
-print(f"Buy and Hold 수익률: {benchmark['total_return']:.2f}%")
-print(f"나의 전략 수익률: {my_strategy['total_return']:.2f}%")
-print(f"초과 수익: {my_strategy['excess_return']:.2f}%p")
-```
+⚠ 부족했던 시기
+❌ 횡보 장세(2025년 1~3월)
 
-## 💡 전략 개발 팁
+확률이 threshold에 걸리지 않거나 잦은 noise trade 발생 → 수익 정체
 
-### 1. 예측 모델 기반 전략
+❌ 중기 상승 구간 일부(2025년 여름)
 
-**장점:**
-- 시계열 패턴 학습 가능
-- 복잡한 비선형 관계 포착
+threshold가 보수적으로 작용하여 Buy & Hold 대비 상승폭 낮음
 
-**단점:**
-- 과적합 위험
-- 시장 변화에 취약
+🧪 7. 모델 및 전략의 한계점
 
-**아이디어:**
-- 앙상블 예측 (여러 모델 결합)
-- 예측 확률 기반 포지션 크기 조절
-- 신뢰도 높은 시그널만 거래
+장기 상승 추세에서 보수적 threshold로 인해 수익 기회를 일부 놓침
 
-### 2. 기술적 지표 기반 전략
+횡보 장세에서는 수수료 부담 증가
 
-**장점:**
-- 해석이 용이
-- 검증된 방법론
+하이퍼파라미터(hidden_size, threshold 등)의 최적 조합 실험 부족
 
-**단점:**
-- 과거 데이터에 의존
-- 시장 변화 대응 느림
+Attention + BiLSTM 구조는 복잡도가 있어 과적합 위험 존재
 
-**아이디어:**
-- 이동평균 크로스오버
-- RSI 과매수/과매도
-- MACD 시그널
-- 볼린저 밴드 돌파
+🔧 8. 개선 방향
+📌 모델 개선
 
-### 3. 하이브리드 전략
+Transformer 계열 모델 적용 (Informer, TFT 등)
 
-**조합 예시:**
-- 예측 모델 + RSI 확인
-- 이동평균 크로스오버 + MACD 시그널
-- 여러 시그널의 동시 발생 시 거래
+Feature 확장: 거래량, 파생상품 지표, 온체인 데이터 추가
 
-### 4. 리스크 관리
+📌 전략 개선
 
-**필수 고려사항:**
-- **손절 (Stop-Loss)**: 최대 손실 한도 설정
-- **익절 (Take-Profit)**: 목표 수익률 달성 시 매도
-- **포지션 크기**: 전액 투자 vs 분할 투자
-- **트레일링 스탑**: 수익 보호를 위한 동적 손절
-- **변동성 고려**: 변동성 높을 때 포지션 축소
+Dynamic threshold (시장 상태에 따라 자동 조절)
 
-## 🚀 PyTorch 기반 딥러닝
+Stop-loss / Take-profit 규칙 추가
 
-이 프로젝트는 **PyTorch**를 사용하여 딥러닝 모델을 구현합니다.
+포지션 유지 기간 조절 (Holding window 적용)
 
-### GPU 가속
+📌 실전 적용 시 주의사항
 
-코드는 자동으로 사용 가능한 GPU를 감지하여 사용합니다:
+실제 시장에서는 슬리피지·호가 스프레드로 성과 저하 가능
 
-```python
-import torch
+백테스트 → Walk-forward 테스트 필요
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(f"Using device: {device}")
-```
+거래소·레버리지 리스크 고려 필요
 
-### PyTorch 모델 클래스
+📝 9. 결론
 
-```python
-from utils import LSTMModel, GRUModel, train_pytorch_model, predict_pytorch_model
+본 과제에서는 비트코인 시계열 데이터를 활용해 직접 모델을 설계하고,
+예측 확률 기반 투자 전략을 구축한 뒤,
+Buy & Hold 및 예제 모델과 비교하여 성능을 평가하였다.
 
-# LSTM 모델 생성
-model = LSTMModel(input_size=features, hidden_size=64, dropout=0.2)
-model = model.to(device)  # GPU로 이동
+그 결과:
 
-# 학습
-history = train_pytorch_model(
-    model=model,
-    train_loader=train_loader,
-    val_loader=val_loader,
-    epochs=100,
-    lr=0.001,
-    patience=15
-)
+MyTradingModel이 Buy & Hold 대비 더 높은 수익률(22.57%) 달성
 
-# 예측
-predictions_prob, predictions = predict_pytorch_model(model, test_loader)
-```
+하락장에서 손실을 크게 줄이며 안정적인 성과 구현
 
-## 📊 주요 함수
+과제 요구사항(모델 설계, 전략 적용, 성능 비교) 모두 충족
 
-### utils.py 주요 함수
+본 프로젝트는 딥러닝 기반 트레이딩 모델 설계와 전략 구현의 실제적인 과정을 잘 보여주는 예시로,
+추가 개선을 통해 실전 알고리즘 트레이딩으로 발전시킬 수 있는 기반을 마련하였다.
 
-```python
-# 데이터 로딩
-load_bitcoin_data(start_date, end_date)
-
-# 특성 생성
-create_features(df, lookback_days)
-
-# 데이터 분할
-prepare_data(data, test_size, validation_size)
-
-# 트레이딩 시뮬레이션
-simulate_trading_strategy(predictions, actual_prices, dates, 
-                         initial_capital, transaction_fee)
-
-# Buy and Hold 계산
-calculate_buy_and_hold_return(prices, initial_capital, transaction_fee)
-
-# 결과 비교 및 시각화
-compare_trading_strategies(results_dict)
-plot_trading_results(results_dict)
-print_trade_log(trade_log, max_rows)
-```
-
-## Point
-
-### 예측 정확도 ≠ 수익률
-
-- 모델의 정확도가 높다고 해서 수익률이 높은 것은 아닙니다
-- 거래 타이밍, 리스크 관리, 수수료 등이 수익에 큰 영향을 미칩니다
-- **실제 트레이딩 시뮬레이션을 통해 이를 확인할 수 있습니다**
-
-### Buy and Hold의 강력함
-
-- 단순하지만 매우 강력한 전략
-- 장기 상승장에서는 빈번한 거래보다 유리할 수 있음
-- 수수료와 잘못된 타이밍의 누적 효과
-
-### 과도한 거래의 위험
-
-- 거래가 많을수록 수수료 부담 증가
-- 잘못된 예측의 누적 효과
-- 감정적 의사결정의 위험
-
-## 🚀 개선 방향
-
-### 더 나은 특성
-- 감정 분석 데이터 (뉴스, 소셜 미디어)
-- 온체인 데이터 (거래량, 활성 주소 수)
-- 거시경제 지표
-- 다른 암호화폐와의 상관관계
-
-### 스마트한 거래 전략
-- 예측 확률 기반 포지션 조절
-- 동적 손절/익절 라인
-- 분할 매수/매도
-- 변동성 기반 거래
-
-### 고급 모델
-- Transformer 기반 모델
-- Attention Mechanism
-- GAN을 활용한 시나리오 생성
-- 강화학습 (Reinforcement Learning)
-
-## 📚 참고 자료
-
-### 라이브러리 문서
-- [yfinance](https://pypi.org/project/yfinance/)
-- [scikit-learn](https://scikit-learn.org/)
-- [PyTorch](https://pytorch.org/)
-- [PyTorch Tutorials](https://pytorch.org/tutorials/)
-- [pandas](https://pandas.pydata.org/)
-
-### 학습 자료
-- [Technical Analysis in Python](https://technical-analysis-library-in-python.readthedocs.io/)
-- [PyTorch Time Series](https://pytorch.org/tutorials/beginner/timeseries_tutorial.html)
-- [Deep Learning with PyTorch](https://pytorch.org/tutorials/beginner/deep_learning_60min_blitz.html)
-- [Algorithmic Trading](https://www.quantstart.com/)
-
-### 트레이딩 전략
-- [Moving Average Crossover](https://www.investopedia.com/articles/active-trading/052014/how-use-moving-average-buy-stocks.asp)
-- [RSI Strategy](https://www.investopedia.com/terms/r/rsi.asp)
-- [MACD](https://www.investopedia.com/terms/m/macd.asp)
-
-## ⚠️ 면책 조항 (DISCLAIMER)
-
-**이 프로젝트는 교육 목적으로만 제작되었습니다.**
-
-- 실제 투자에 사용하지 마세요
-- 과거 성능이 미래 결과를 보장하지 않습니다
-- 암호화폐 투자는 매우 높은 위험을 수반합니다
-- 투자 손실에 대한 책임은 투자자 본인에게 있습니다
-- 실전 투자 전에 반드시 전문가와 상담하세요
-
-**Remember: Never invest more than you can afford to lose!**
-
-## 🤝 기여 및 피드백
-
-juho@hufs.ac.kr , 한국외국어대학교 GBT + Business & AI
+📁 Repository Structure
+├── README.md
+├── assignment_notebook.ipynb
+├── lab_notebook.ipynb
+├── utils.py
+└── models/
+    └── my_trading_model.py (optional)
