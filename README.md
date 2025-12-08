@@ -1,205 +1,193 @@
-📌 Bitcoin Price Prediction & Trading Strategy
-Deep Learning 기반 가격 예측 모델 설계 및 투자 전략 구현
+# 📌 Bitcoin Price Prediction & Trading Strategy  
+### **Deep Learning 기반 가격 예측 모델 설계 및 투자 전략 구현**
 
-본 프로젝트는 비트코인 가격 시계열 데이터를 기반으로 딥러닝 모델을 직접 설계하여 상승 확률을 예측하고,
-이를 바탕으로 투자 전략을 구성한 뒤,
-Buy & Hold 및 예제 모델과 비교하여 성능을 분석하는 것을 목표로 한다.
+본 프로젝트는 비트코인 가격 시계열 데이터를 기반으로 **딥러닝 모델을 직접 설계하여 상승 확률을 예측하고**,  
+이를 바탕으로 **투자 전략을 구성한 뒤**,  
+**Buy & Hold 및 예제 모델과 비교하여 성능을 분석**하는 것을 목표로 한다.
 
-📁 포함 파일
+📁 포함 파일  
+- `assignment_notebook.ipynb` (최종 과제 결과물)  
+- `lab_notebook.ipynb` (실습 기반 노트북)  
+- `utils.py` (전처리 및 시뮬레이션 함수)  
 
-assignment_notebook.ipynb (최종 과제 결과물)
+---
 
-lab_notebook.ipynb (실습 기반 노트북)
-
-utils.py (전처리 및 시뮬레이션 함수)
-
-🧠 1. 프로젝트 개요
+# 🧠 1. 프로젝트 개요
 
 본 과제에서는 다음의 과정을 수행하였다:
 
-시계열 가격 데이터를 기반으로 딥러닝 모델(MyTradingModel) 설계 및 학습
+1. **시계열 가격 데이터를 기반으로 딥러닝 모델(MyTradingModel) 설계 및 학습**
+2. **예측 확률 기반의 트레이딩 전략(Threshold + Position Scaling) 구현**
+3. **Buy & Hold / 예제 모델 대비 성과 비교**
+4. **결과 분석 및 개선 방향 도출**
+   
+---
 
-예측 확률 기반의 트레이딩 전략(Threshold + Position Scaling) 구현
-
-Buy & Hold / 예제 모델 대비 성과 비교
-
-결과 분석 및 개선 방향 도출
-
-📘 2. 데이터 및 전처리
+# 📘 2. 데이터 및 전처리
 
 사용된 데이터는 비트코인 가격의 시계열 데이터이며, 다음 과정을 거쳐 모델 학습에 활용하였다.
 
-MinMax Scaling
+- MinMax Scaling  
+- OHLC + 기술적 지표(feature) 생성  
+- Sequence 생성 (lookback window)  
+- Train / Validation / Test 분리  
+- PyTorch DataLoader 구성  
 
-OHLC + 기술적 지표(feature) 생성
+라벨은 **다음 시점 가격 상승 여부(0 또는 1)** 로 설정하였다.
 
-Sequence 생성 (lookback window)
+---
 
-Train / Validation / Test 분리
+# 🧠 3. 모델 설계: MyTradingModel
 
-PyTorch DataLoader 구성
+본 프로젝트의 핵심은 **직접 설계한 모델이 예제 모델보다 더 우수한 성능을 내는가**이다.  
+이를 위해 다음과 같은 구조의 **BiLSTM + Attention 모델**을 설계하였다.
 
-라벨은 다음 시점 가격 상승 여부(0 또는 1) 로 설정하였다.
+---
 
-🧠 3. 모델 설계: MyTradingModel
+## 🔧 3.1 모델 아키텍처
 
-본 프로젝트의 핵심은 직접 설계한 모델이 예제 모델보다 더 우수한 성능을 내는가이다.
-이를 위해 다음과 같은 구조의 BiLSTM + Attention 모델을 설계하였다.
+- **입력:** (batch, seq_len, features)
+- **BiLSTM Encoder**
+  - hidden_size = 64  
+  - num_layers = 2  
+  - bidirectional = True  
+- **Attention Layer**
+  - Linear(128 → 1)  
+  - softmax로 타임스텝 중요도 계산  
+- **Fully Connected Layer**
+  - Linear(128 → 32) → ReLU  
+  - Linear(32 → 1) → Sigmoid  
 
-🔧 3.1 모델 아키텍처
+---
 
-입력: (batch, seq_len, features)
+## 🎯 3.2 선택 이유
 
-BiLSTM Encoder
+- **양방향 LSTM(BiLSTM)**은 앞·뒤 문맥을 모두 반영하여 추세 변화 감지에 유리  
+- **Attention Mechanism**은 급등·급락 등 중요한 구간에 더 큰 가중치 부여  
+- **간결한 MLP 출력층**은 모델의 파라미터 폭증을 방지하며 일반화 성능을 확보  
 
-hidden_size = 64
+---
 
-num_layers = 2
+## ⚙ 3.3 주요 하이퍼파라미터
 
-bidirectional = True
+| 하이퍼파라미터 | 값 | 설명 |
+|---------------|-----|-------|
+| hidden_size | 64 | 충분한 표현력 + 과적합 방지 |
+| dropout | 0.2 | LSTM 과적합 방지 |
+| learning_rate | 0.001 | Adam Optimizer 기본 안정값 |
+| threshold | 0.55 | p > 0.55일 때만 매수 진입 |
+| position_scaling | True | 확률에 비례한 포지션 조절 |
 
-Attention Layer
+---
 
-Linear(128 → 1)
+# 💰 4. 트레이딩 전략 설계
 
-softmax로 타임스텝 중요도 계산
+모델의 출력은 **다음 시점 상승 확률 p**이며, 이를 바탕으로 아래의 전략을 구성하였다.
 
-Fully Connected Layer
+### ✔ 매수 조건  
+- 상승 확률 **p > 0.55**  
+- 확률이 높을수록 **포지션 규모 증가(position scaling)**
 
-Linear(128 → 32) → ReLU
+### ✔ 매도/관망 조건  
+- p ≤ 0.55  
+- 변동성이 큰 국면에서는 거래 감소로 손실 최소화
 
-Linear(32 → 1) → Sigmoid
+### ✔ 수수료 반영  
+- 거래 수수료 고려  
+- 지나친 매매로 인한 수익 저하 방지
 
-🎯 3.2 선택 이유
+---
 
-**양방향 LSTM(BiLSTM)**은 앞·뒤 문맥을 모두 반영하여 추세 변화 감지에 유리
-
-Attention Mechanism은 급등·급락 등 중요한 구간에 더 큰 가중치 부여
-
-간결한 MLP 출력층은 모델의 파라미터 폭증을 방지하며 일반화 성능을 확보
-
-⚙ 3.3 주요 하이퍼파라미터
-하이퍼파라미터	값	설명
-hidden_size	64	충분한 표현력 + 과적합 방지
-dropout	0.2	LSTM 과적합 방지
-learning_rate	0.001	Adam Optimizer 기본 안정값
-threshold	0.55	p > 0.55일 때만 매수 진입
-position_scaling	True	확률에 비례한 포지션 조절
-💰 4. 트레이딩 전략 설계
-
-모델의 출력은 다음 시점 상승 확률 p이며, 이를 바탕으로 아래의 전략을 구성하였다.
-
-✔ 매수 조건
-
-상승 확률 p > 0.55
-
-확률이 높을수록 포지션 규모 증가(position scaling)
-
-✔ 매도/관망 조건
-
-p ≤ 0.55
-
-변동성이 큰 국면에서는 거래 감소로 손실 최소화
-
-✔ 수수료 반영
-
-거래 수수료 고려
-
-지나친 매매로 인한 수익 저하 방지
-
-📊 5. 벤치마크 비교 결과
+# 📊 5. 벤치마크 비교 결과
 
 최종 시뮬레이션 결과는 다음과 같다.
 
-전략	최종 자본	수익률
-Buy & Hold	$11,794	17.94%
-예제 모델	$10,200	2.00%
-MyTradingModel	$12,257	22.57%
+| 전략 | 최종 자본 | 수익률 |
+|------|-----------|---------|
+| **Buy & Hold** | $11,794 | **17.94%** |
+| **예제 모델** | $10,200 | **2.00%** |
+| **MyTradingModel** | **$12,257** | **22.57%** |
 
-➡ MyTradingModel이 Buy & Hold 대비 +4.63%p 높은 성과 달성
+➡ **MyTradingModel이 Buy & Hold 대비 +4.63%p 높은 성과 달성**  
 ➡ 예제 모델 대비 압도적으로 뛰어난 성과
 
-📈 5.1 포트폴리오 자본 곡선 (Equity Curve)
+---
+
+# 📈 5.1 포트폴리오 자본 곡선 (Equity Curve)
 
 MyTradingModel의 자본 곡선은 안정적인 상승 + 하락장 회피 패턴이 특징적이다.
 
-(그래프는 notebook에서 자동 생성됨)
+_(그래프는 notebook에서 자동 생성됨)_
 
-🔍 6. 성과 분석
-⭐ 성공 시기
-✔ 초기 상승 구간(2024년 11월 ~ 2025년 1월)
+---
 
+# 🔍 6. 성과 분석
+
+## ⭐ 성공 시기
+
+### ✔ 초기 상승 구간(2024년 11월 ~ 2025년 1월)  
 모델이 강한 상승 추세를 잘 포착하여 빠르게 자본 증가.
 
-✔ 하락 후 반등 구간(2025년 4~5월)
-
-Buy & Hold는 큰 낙폭 발생,
-MyTradingModel은 포지션 축소로 손실 회피,
+### ✔ 하락 후 반등 구간(2025년 4~5월)  
+Buy & Hold는 큰 낙폭 발생,  
+MyTradingModel은 포지션 축소로 **손실 회피**,  
 반등 국면에서 재진입하여 성과 상승.
 
-⚠ 부족했던 시기
-❌ 횡보 장세(2025년 1~3월)
+---
 
+## ⚠ 부족했던 시기
+
+### ❌ 횡보 장세(2025년 1~3월)  
 확률이 threshold에 걸리지 않거나 잦은 noise trade 발생 → 수익 정체
 
-❌ 중기 상승 구간 일부(2025년 여름)
-
+### ❌ 중기 상승 구간 일부(2025년 여름)  
 threshold가 보수적으로 작용하여 Buy & Hold 대비 상승폭 낮음
 
-🧪 7. 모델 및 전략의 한계점
+---
 
-장기 상승 추세에서 보수적 threshold로 인해 수익 기회를 일부 놓침
+# 🧪 7. 모델 및 전략의 한계점
 
-횡보 장세에서는 수수료 부담 증가
+- 장기 상승 추세에서 보수적 threshold로 인해 수익 기회를 일부 놓침  
+- 횡보 장세에서는 수수료 부담 증가  
+- 하이퍼파라미터(hidden_size, threshold 등)의 최적 조합 실험 부족  
+- Attention + BiLSTM 구조는 복잡도가 있어 과적합 위험 존재  
 
-하이퍼파라미터(hidden_size, threshold 등)의 최적 조합 실험 부족
+---
 
-Attention + BiLSTM 구조는 복잡도가 있어 과적합 위험 존재
+# 🔧 8. 개선 방향
 
-🔧 8. 개선 방향
-📌 모델 개선
+### 📌 모델 개선  
+- Transformer 계열 모델 적용 (Informer, TFT 등)  
+- Feature 확장: 거래량, 파생상품 지표, 온체인 데이터 추가  
 
-Transformer 계열 모델 적용 (Informer, TFT 등)
+### 📌 전략 개선  
+- Dynamic threshold (시장 상태에 따라 자동 조절)  
+- Stop-loss / Take-profit 규칙 추가  
+- 포지션 유지 기간 조절 (Holding window 적용)
 
-Feature 확장: 거래량, 파생상품 지표, 온체인 데이터 추가
+### 📌 실전 적용 시 주의사항  
+- 실제 시장에서는 슬리피지·호가 스프레드로 성과 저하 가능  
+- 백테스트 → Walk-forward 테스트 필요  
+- 거래소·레버리지 리스크 고려 필요  
 
-📌 전략 개선
+---
 
-Dynamic threshold (시장 상태에 따라 자동 조절)
+# 📝 9. 결론
 
-Stop-loss / Take-profit 규칙 추가
-
-포지션 유지 기간 조절 (Holding window 적용)
-
-📌 실전 적용 시 주의사항
-
-실제 시장에서는 슬리피지·호가 스프레드로 성과 저하 가능
-
-백테스트 → Walk-forward 테스트 필요
-
-거래소·레버리지 리스크 고려 필요
-
-📝 9. 결론
-
-본 과제에서는 비트코인 시계열 데이터를 활용해 직접 모델을 설계하고,
-예측 확률 기반 투자 전략을 구축한 뒤,
+본 과제에서는 비트코인 시계열 데이터를 활용해 **직접 모델을 설계하고**,  
+예측 확률 기반 투자 전략을 구축한 뒤,  
 Buy & Hold 및 예제 모델과 비교하여 성능을 평가하였다.
 
 그 결과:
 
-MyTradingModel이 Buy & Hold 대비 더 높은 수익률(22.57%) 달성
+- **MyTradingModel이 Buy & Hold 대비 더 높은 수익률(22.57%) 달성**
+- 하락장에서 손실을 크게 줄이며 안정적인 성과 구현
+- 과제 요구사항(모델 설계, 전략 적용, 성능 비교) 모두 충족
 
-하락장에서 손실을 크게 줄이며 안정적인 성과 구현
-
-과제 요구사항(모델 설계, 전략 적용, 성능 비교) 모두 충족
-
-본 프로젝트는 딥러닝 기반 트레이딩 모델 설계와 전략 구현의 실제적인 과정을 잘 보여주는 예시로,
+본 프로젝트는 딥러닝 기반 트레이딩 모델 설계와 전략 구현의 실제적인 과정을 잘 보여주는 예시로,  
 추가 개선을 통해 실전 알고리즘 트레이딩으로 발전시킬 수 있는 기반을 마련하였다.
 
-📁 Repository Structure
-├── README.md
-├── assignment_notebook.ipynb
-├── lab_notebook.ipynb
-├── utils.py
-└── models/
-    └── my_trading_model.py (optional)
+---
+
+# 📁 Repository Structure
+
